@@ -1,5 +1,6 @@
 #include<iostream> 
 #include<map>
+#include<queue>
 
 using namespace std;
 
@@ -77,63 +78,151 @@ struct Cube
 	}
 };
 
-map< string, short > M0;
-
-void dfs0( Cube * c, int depth = 0, int lastMovement = -1 )
+namespace DFS
 {
-	if( M0.count( c->mat ) && M0[ c->mat ] <= depth ) return;
-	M0[ c->mat ] = depth;
-
-	if( depth == 6 ) return;
-
-	for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
+	map< string, short > M0;
+	void init( Cube * c, int depth = 0, int lastMovement = -1 )
 	{
-		if( i == lastMovement ) continue;
-		c -> rotate( i );
-		dfs0( c, depth + 1, i ^ 1 );
-		c -> rotate( i ^ 1 );
+		if( M0.count( c->mat ) && M0[ c->mat ] <= depth ) return;
+		M0[ c->mat ] = depth;
+
+		if( depth == 6 ) return;
+
+		for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
+		{
+			if( i == lastMovement ) continue;
+			c -> rotate( i );
+			init( c, depth + 1, i ^ 1 );
+			c -> rotate( i ^ 1 );
+		}
 	}
-}
+
+	short search( Cube * c, int depth = 0, int lastMovement = -1 )
+	{
+		if( M0.count( c -> mat ) ) 
+			return depth + M0[ c -> mat] ;
+		if( depth == 9 ) return false;
+		for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
+		{
+			if( i == lastMovement ) continue;
+			c -> rotate( i );
+			short r = search( c, depth + 1, i ^ 1 );
+			if( r ) return r; 
+				
+			c -> rotate( i ^ 1 );
+		}
+		return false;
+	}
+
+	void recolectStats()
+	{
+		puts("\n\n**************************************\nDFS\n\n");
+		init(new Cube());
+		for( int it = 1; it <= 30; ++ it )
+		{
+			Cube * c =  new Cube();
+			c -> randomSort(15);
+			search( c );
+			printf(" %d", it );
+			fflush(stdout);
+		}
+		puts("\n");
+		printf("Memory (Kb) userd for precalculation: %d\n", int( M0.size() ) * 48 / 1024 );
+
+		printf("");
+		printf("");
+
+		puts("**************************************\n");
+	}
+};
 
 
-int cn = 0;
-short dfs( Cube * c, int depth = 0, int lastMovement = -1 )
+namespace BFS
 {
-	if( M0.count( c -> mat ) ) 
-		return depth + M0[ c -> mat] ;
-	//c->print();
-	++cn;
-	if( depth == 9 ) return false;
-	for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
+	map< string, short > M0;
+	void init( Cube * c )
 	{
-		if( i == lastMovement ) continue;
-		c -> rotate( i );
-		short r = dfs( c, depth + 1, i ^ 1 );
-		if( r ) return r; 
-			
-		c -> rotate( i ^ 1 );
+		queue < string > q;
+		q.push( c -> mat );
+
+		int dep = 0;
+		while( q.size() && dep < 7 )
+		{
+			int sz = q.size();
+			for( int it = 0; it < sz; ++ it )
+			{
+				string s = q.front();
+				q.pop();
+				c -> mat = s;
+				for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
+				{
+					c -> rotate( i );
+					if( M0.count( c -> mat ) == 0 )
+					{
+						q.push( c -> mat );
+						M0[c-> mat] = dep + 1;
+					}
+					c -> rotate( i ^ 1 );
+				}
+			}
+			++dep;
+		}
 	}
-	return false;
-}
+
+	short search( Cube * c )
+	{
+		queue < string > q;
+		q.push( c -> mat );
+		
+		int dep = 0;
+		while( q.size() )
+		{
+			int s = q.size();
+			for( int it = 0; it < s; ++ it )
+			{
+				string s = q.front();
+				q.pop();
+
+				if( M0.count( s ) ) return dep + M0[s];
+				c -> mat = s;
+				for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
+				{
+					c -> rotate( i );
+					q.push( c -> mat );
+					c -> rotate( i ^ 1 );
+				}
+			}
+			++dep;
+		}
+		return -1;
+	}
+
+	void recolectStats()
+	{
+		puts("\n\n**************************************\nBFS\n\n");
+		init(new Cube());
+		for( int it = 1; it <= 30; ++ it )
+		{
+			Cube * c =  new Cube();
+			c -> randomSort(15);
+			search( c );
+			printf(" %d", it );
+			fflush(stdout);
+		}
+		puts("");
+
+		printf("Memory (Kb) userd for precalculation: %d\n", int( M0.size() ) * 48 / 1024 );
+		printf("");
+		printf("");
+
+		puts("**************************************\n");
+	}
+};
 
 int main()
 {
 	srand( time ( NULL ) );
-	
-	Cube * fc = new Cube();
-	puts("Loading ...");
-	dfs0( fc );
-	
-	for( int it = 0; it < 30; ++ it )
-	{
-		Cube * c = new Cube();
-		puts("Cube generation ...");
-		c -> randomSort(15);
-		c -> print();
-		
-		puts("Solving ...");
-		printf("Solved in %d movements\n", dfs( c ));
-	}
-	cout << 1.0 * clock() / CLOCKS_PER_SEC << endl;
+	DFS::recolectStats();
+	BFS::recolectStats();
 	return 0;
 }
