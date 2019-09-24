@@ -81,8 +81,13 @@ struct Cube
 namespace DFS
 {
 	map< string, short > M0;
+	long long sum_STsize;
+	int cn_st;
 	void init( Cube * c, int depth = 0, int lastMovement = -1 )
 	{
+		++cn_st;
+		sum_STsize += depth;
+
 		if( M0.count( c->mat ) && M0[ c->mat ] <= depth ) return;
 		M0[ c->mat ] = depth;
 
@@ -99,6 +104,9 @@ namespace DFS
 
 	short search( Cube * c, int depth = 0, int lastMovement = -1 )
 	{
+		++cn_st;
+		sum_STsize += depth;
+
 		if( M0.count( c -> mat ) ) 
 			return depth + M0[ c -> mat] ;
 		if( depth == 9 ) return false;
@@ -116,21 +124,27 @@ namespace DFS
 
 	void recolectStats()
 	{
+		cn_st = 0;
+		sum_STsize = 0;
 		puts("\n\n**************************************\nDFS\n\n");
+		double in_time = clock();
 		init(new Cube());
+		int sum = 0;
 		for( int it = 1; it <= 30; ++ it )
 		{
 			Cube * c =  new Cube();
 			c -> randomSort(15);
-			search( c );
+			sum += search( c );
 			printf(" %d", it );
 			fflush(stdout);
 		}
 		puts("\n");
 		printf("Memory (Kb) userd for precalculation: %d\n", int( M0.size() ) * 48 / 1024 );
-
-		printf("");
-		printf("");
+		printf("Average movements used for solving: %0.2f\n", 1.0 * sum / 30 );
+		printf("Average time used for solving: %0.2f secs\n", (clock() - in_time) / CLOCKS_PER_SEC / 30.0 );
+		printf("Maximum stack size %d\n", 9 );
+		printf("Average stack size %0.2f\n", 1.0 * sum_STsize / cn_st );
+		printf("\n");
 
 		puts("**************************************\n");
 	}
@@ -140,17 +154,24 @@ namespace DFS
 namespace BFS
 {
 	map< string, short > M0;
+	int mx_Qsize, cnQ;
+	long long sum_Qsize;
 	void init( Cube * c )
 	{
 		queue < string > q;
+		M0[ c-> mat ] = 0;
 		q.push( c -> mat );
 
 		int dep = 0;
-		while( q.size() && dep < 7 )
+		while( q.size() && dep < 6 )
 		{
 			int sz = q.size();
 			for( int it = 0; it < sz; ++ it )
 			{
+				++cnQ;
+				sum_Qsize += int( q.size() );
+				if( int( q.size() ) > mx_Qsize )
+					mx_Qsize = int( q.size() );
 				string s = q.front();
 				q.pop();
 				c -> mat = s;
@@ -180,14 +201,17 @@ namespace BFS
 			int s = q.size();
 			for( int it = 0; it < s; ++ it )
 			{
+				if( int( q.size() ) > mx_Qsize )
+					mx_Qsize = int( q.size() );
 				string s = q.front();
 				q.pop();
 
-				if( M0.count( s ) ) return dep + M0[s];
 				c -> mat = s;
 				for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
 				{
 					c -> rotate( i );
+					if( M0.count( c -> mat ) )
+						return dep + M0[ c-> mat ] + 1;
 					q.push( c -> mat );
 					c -> rotate( i ^ 1 );
 				}
@@ -199,21 +223,29 @@ namespace BFS
 
 	void recolectStats()
 	{
+		mx_Qsize = cnQ = 0;
+		sum_Qsize = 0;
 		puts("\n\n**************************************\nBFS\n\n");
+		double in_time = clock();
 		init(new Cube());
+		int sum = 0;
 		for( int it = 1; it <= 30; ++ it )
 		{
 			Cube * c =  new Cube();
 			c -> randomSort(15);
-			search( c );
+			sum +=search( c );
 			printf(" %d", it );
 			fflush(stdout);
 		}
 		puts("");
 
 		printf("Memory (Kb) userd for precalculation: %d\n", int( M0.size() ) * 48 / 1024 );
-		printf("");
-		printf("");
+		printf("Average movements used for solving: %0.2f\n", 1.0 * sum / 30 );
+		printf("Average time used for solving: %0.2f secs\n", (clock() - in_time) / CLOCKS_PER_SEC / 30.0 );
+		printf("Maximum queue size %d\n", mx_Qsize );
+		printf("Average queue size %0.2f\n", 1.0 * sum_Qsize / cnQ );
+
+		printf("\n");
 
 		puts("**************************************\n");
 	}
