@@ -4,6 +4,8 @@ using namespace std;
 const int STICKERS = 48;
 const int ROT_SIZE = 12;
 const int TOTAL_ROTATIONS = 12;
+const int FACE_SIZE = 8;
+
 const int ROTATIONS[TOTAL_ROTATIONS][ROT_SIZE] =
 {
 	{0,1,2,16,17,18,32,33,34,40,41,42},
@@ -18,6 +20,22 @@ const int ROTATIONS[TOTAL_ROTATIONS][ROT_SIZE] =
 	{5,3,0,8,9,10,34,36,39,31,30,29},
 	{24,25,26,37,35,32,15,14,13,2,4,7},
 	{7,4,2,13,14,15,32,35,37,26,25,24}
+};
+
+const int FACE_ROTATION[TOTAL_ROTATIONS][FACE_SIZE] = 
+{
+  {11,14,12,9,13,15,10,8},
+	{8,10,15,13,9,12,14,11},
+  {26,31,29,24,28,30,27,25},
+  {25,27,30,28,24,29,31,26},
+  {6,3,1,4,5,0,2,7},
+  {7,2,0,5,4,1,3,6},
+  {35,38,36,33,37,39,34,32},
+  {32,34,39,37,33,36,38,35},
+  {44,46,43,41,42,47,45,40},
+  {40,45,47,42,41,43,46,44},
+  {19,22,20,17,21,23,18,16},
+  {16,18,23,21,17,20,22,19},
 };
 
 struct Cube
@@ -47,6 +65,15 @@ struct Cube
 				mat[ ROTATIONS[idx][ ( j - 1 ) * 3 + i ] ] = mat[ ROTATIONS[idx][ j * 3 + i ] ];
 			mat[ ROTATIONS[idx][9 + i] ] = tmp;
 		}
+
+    for( int i = 0; i < 2; ++ i )
+    {
+      char tmp = mat[ FACE_ROTATION[idx][4 * i] ];
+      for( int j = 0; j < 3; ++ j )
+        mat[ FACE_ROTATION[idx][4* i + j] ] = mat[FACE_ROTATION[idx][4*i + j + 1]];
+     mat[ FACE_ROTATION[idx][4*i + 3] ] = tmp;
+    }
+
 	}
 
 	void print()
@@ -77,6 +104,7 @@ struct Cube
   const short inv[6] = {4,3,5,1,0,2};
   short heuristic()
   {
+    return 0;
     int tot = 0;
     for( int i = 0; i < STICKERS; ++ i )
     {
@@ -120,6 +148,7 @@ namespace DFS
 
 		if( M0.count( c -> mat ) )
 			return depth + M0[ c -> mat] ;
+
 		if( depth == 9 ) return false;
 		for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
 		{
@@ -203,6 +232,9 @@ namespace BFS
 
 	short search( Cube * c )
 	{
+    if( M0.count( c -> mat ) )
+      return M0[c -> mat ];
+
 		queue < string > q;
 		q.push( c -> mat );
 
@@ -264,19 +296,53 @@ namespace BFS
 
 namespace Aasterisk
 {
-    
+ 	map< string, short > M0;
 	int mx_Qsize, cnQ;
 	long long sum_Qsize;
-	long long sum_STsize=0;
-	int cn_st=0,sum=0;
+	void init( Cube * c )
+	{
+		queue < string > q;
+		M0[ c-> mat ] = 0;
+		q.push( c -> mat );
+
+		int dep = 0;
+		while( q.size() && dep < 7 )
+		{
+			int sz = q.size();
+			for( int it = 0; it < sz; ++ it )
+			{
+				++cnQ;
+				sum_Qsize += int( q.size() );
+				if( int( q.size() ) > mx_Qsize )
+					mx_Qsize = int( q.size() );
+				string s = q.front();
+				q.pop();
+				c -> mat = s;
+				for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
+				{
+					c -> rotate( i );
+					if( M0.count( c -> mat ) == 0 )
+					{
+						q.push( c -> mat );
+						M0[c-> mat] = dep + 1;
+					}
+					c -> rotate( i ^ 1 );
+				}
+			}
+			++dep;
+		}
+	}
 
   int search( Cube c )
   {
-    queue < pair<int,Cube> > q [16];
+    if( M0.count( c.mat ) )
+      return M0[ c.mat ];
+
+    queue < pair<int,Cube> > q [22];
     q[c.heuristic()].push({0,c});
 
-    int it = 0;
-    while( it < 10 )
+    int it = 0, currQSize = 0;
+    while( true )
     {
       if( q[it].size() == 0 )
       {
@@ -284,59 +350,30 @@ namespace Aasterisk
         continue;
       }
 
+      sum_Qsize += currQSize;
+      mx_Qsize = max( mx_Qsize, currQSize );
       Cube curr = q[it].front().second;
       int depth = q[it].front().first;
       
       q[it].pop();
 
-      if( curr.done() ) return depth;
+      --currQSize;
       ++depth;
 
       for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
       { 
         curr.rotate( i );
-        int Ncost = depth + curr.heuristic();
-        if( Ncost < 10 )
-          q[Ncost].push({ depth, curr } );
+        
+        if( M0.count( curr.mat ))
+          return depth + M0[curr.mat];
+        else
+          q[depth + curr.heuristic()].push({ depth, curr } ), ++currQSize;
 
         curr.rotate( i ^ 1 );
       }
     }
-    return 10;
+    return -1;
   }
-
-  /*
-	int search( Cube c )
-	{
-        map< string, bool> vis;
-        set< tuple<int,string,int> > st;
-        st.insert(make_tuple(0,c.mat,0));
-        while(st.size()>0){
-            tuple<short,string,short> aux=*st.begin();
-            st.erase(aux);
-            sum_Qsize+=st.size();
-            cnQ++;
-            int cost=get<0>(aux);
-            c.mat=get<1>(aux);
-            int depth=get<2>(aux);
-            if(c.done())
-                return depth;
-            vis[c.mat]=true;
-            for( int i = 0; i < TOTAL_ROTATIONS; ++ i ){
-					c.rotate( i );
-					if( vis[c.mat]==0 ){
-                        int newCost=cost+ c.heuristic();
-                        st.insert(make_tuple(newCost,c.mat,depth+1));
-                        sum_Qsize+=st.size();
-                        cnQ++;
-                    }
-					c.rotate( i ^ 1 );
-            }
-            mx_Qsize=max(mx_Qsize,(int)st.size());
-        }
-        return -1;
-	}
-  */
 
 	void recolectStats()
 	{
@@ -344,17 +381,19 @@ namespace Aasterisk
 		sum_Qsize = 0;
 		puts("\n\n**************************************\nA*\n\n");
 		double in_time = clock();
+    init(new Cube());
+    int sum = 0;
 		for( int it = 1; it <= 30; ++ it )
 		{
 			Cube c;
-			c.randomSort(10);
+			c.randomSort(15);
 			sum+=search( c );
 			printf(" %d", it );
 			fflush(stdout);
 		}
 		puts("");
 
-		//printf("Memory (Kb) userd for precalculation: %d\n", int( vis.size() ) * 48 / 1024 );
+		printf("Memory (Kb) userd for precalculation: %d\n", int( M0.size() ) * 48 / 1024 );
 		printf("Average movements used for solving: %0.2f\n", 1.0 * sum / 30 );
 		printf("Average time used for solving: %0.2f secs\n", (clock() - in_time) / CLOCKS_PER_SEC / 30.0 );
 		printf("Maximum queue size %d\n", mx_Qsize );
@@ -365,12 +404,84 @@ namespace Aasterisk
 		puts("**************************************\n");
 	}
 };
-int main()
 
+int main()
 {
 	srand( time ( NULL ) );
-	//DFS::recolectStats();
-	//BFS::recolectStats();
-	Aasterisk ::recolectStats();
+//	DFS::recolectStats();
+	BFS::recolectStats();
+//	Aasterisk ::recolectStats();
+
+  /*
+  https://rubiks-cube-solver.com/solution.php?cube=0336646114625511663231435221334462565322151235154425446
+  for( int i = 0; i < 12; ++ i )
+  {
+    Cube c;
+    c.rotate( i );
+
+    cout << i << endl;
+    c.print();
+  }
+
+  Cube c;
+  c.mat = "435504422244400132015330051151142211354523300325";
+
+  cout <<"GO!" << endl;
+  c.print();
+  c.rotate(11);
+  c.print();
+  c.rotate(6);
+  c.print();
+  c.rotate(3);
+  c.print();
+  c.rotate(8);
+  c.print();
+  c.rotate(0);
+  c.print();
+  c.rotate(6);
+  c.print();
+  c.rotate(11);
+  c.print();
+  c.rotate(0);
+  c.print();
+  c.rotate(0);
+  c.print();
+  c.rotate(11);
+  c.print();
+  c.rotate(3);
+  c.print();
+  c.rotate(4);
+  c.print();
+  c.rotate(9);
+  c.print();
+  c.rotate(9);
+  c.print();
+  c.rotate(6);
+  c.print();
+  c.rotate(6);
+  c.print();
+  c.rotate(1);
+  c.print();
+  c.rotate(10);
+  c.print();
+  c.rotate(10);
+  c.print();
+  c.rotate(5);
+  c.print();
+  c.rotate(5);
+  c.print();
+  c.rotate(3);
+  c.print();
+  c.rotate(9);
+  c.print();
+  c.rotate(9);
+  c.print();
+  c.rotate(5);
+  c.print();
+  c.rotate(5);
+  c.print();
+  
+  */
 	return 0;
 }
+
