@@ -149,7 +149,7 @@ namespace DFS
 		if( M0.count( c -> mat ) )
 			return depth + M0[ c -> mat] ;
 
-		if( depth == 9 ) return false;
+		if( depth == 6 ) return false;
 		for( int i = 0; i < TOTAL_ROTATIONS; ++ i )
 		{
 			if( i == lastMovement ) continue;
@@ -173,7 +173,7 @@ namespace DFS
 		for( int it = 1; it <= 30; ++ it )
 		{
 			Cube * c =  new Cube();
-			c -> randomSort(15);
+			c -> randomSort(12);
 			sum += search( c );
 			printf(" %d", it );
 			fflush(stdout);
@@ -203,7 +203,7 @@ namespace BFS
 		q.push( c -> mat );
 
 		int dep = 0;
-		while( q.size() && dep < 7 )
+		while( q.size() && dep < 6 )
 		{
 			int sz = q.size();
 			for( int it = 0; it < sz; ++ it )
@@ -275,7 +275,7 @@ namespace BFS
 		for( int it = 1; it <= 30; ++ it )
 		{
 			Cube * c =  new Cube();
-			c -> randomSort(15);
+			c -> randomSort(12);
 			sum +=search( c );
 			printf(" %d", it );
 			fflush(stdout);
@@ -306,7 +306,7 @@ namespace Aasterisk
 		q.push( c -> mat );
 
 		int dep = 0;
-		while( q.size() && dep < 7 )
+		while( q.size() && dep < 6 )
 		{
 			int sz = q.size();
 			for( int it = 0; it < sz; ++ it )
@@ -386,7 +386,7 @@ namespace Aasterisk
 		for( int it = 1; it <= 30; ++ it )
 		{
 			Cube c;
-			c.randomSort(15);
+			c.randomSort(12);
 			sum+=search( c );
 			printf(" %d", it );
 			fflush(stdout);
@@ -408,9 +408,9 @@ namespace Aasterisk
 int main()
 {
 	srand( time ( NULL ) );
-//	DFS::recolectStats();
+	Aasterisk ::recolectStats();
 	BFS::recolectStats();
-//	Aasterisk ::recolectStats();
+	DFS::recolectStats();
 
   /*
   https://rubiks-cube-solver.com/solution.php?cube=0336646114625511663231435221334462565322151235154425446
